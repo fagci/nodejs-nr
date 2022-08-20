@@ -4,6 +4,8 @@ class Connection extends net.Socket {
     constructor(ip, port) {
         super();
         this.setTimeout(750);
+        this.setNoDelay(true);
+        this.setKeepAlive(false);
         this._recved = '';
 
         this.addListener('error', this.destroy);

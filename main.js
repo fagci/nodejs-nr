@@ -3,10 +3,14 @@ const Connection = require('./connection');
 
 function task() {
     let conn;
+    let timeout;
     setInterval(function() {
         if (conn) return;
 
         conn = new Connection(gen(), 80);
+        timeout = setTimeout(() => {
+            conn.destroy();
+        }, 5000);
 
         conn.addListener('connect', function() {
             conn.send(`GET / HTTP/1.1\r\nHost: ${conn.remoteAddress}\r\n\r\n`);
@@ -17,6 +21,8 @@ function task() {
             let ip = conn.remoteAddress;
 
             conn = null;
+            clearTimeout(timeout);
+            timeout = null;
 
             if (!data) return;
 
