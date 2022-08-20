@@ -1,10 +1,9 @@
-const async = require("async");
-const gen = require("./gen");
+const gen = require('./gen');
 const net = require('net');
 
 function processHost(ip, port, cb) {
     const socket = new net.Socket();
-    let recved = "";
+    let recved = '';
     socket.check_result = false;
 
     socket.on('connect', function() {
@@ -28,16 +27,18 @@ function processHost(ip, port, cb) {
     socket.connect(port, ip);
 }
 
+let task = function(resolve, reject) {
+    let ip;
+    setInterval(function() {
+        if (!ip) {
+            ip = gen();
+            processHost(ip, 80, function() { ip = null; });
+        }
+    });
+};
+
 const workers = Array(1024).fill().map(function() {
-    return function(callback) {
-        let ip;
-        setInterval(function() {
-            if (!ip) {
-                ip = gen();
-                processHost(ip, 80, function() { ip = null; });
-            }
-        });
-    }
+    return new Promise(task);
 });
 
-async.parallel(workers);
+Promise.all(workers);
