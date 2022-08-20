@@ -4,27 +4,27 @@ const gen = require('./gen');
 class Connection extends net.Socket {
     constructor(ip, port) {
         super();
-
-        this.on('data', data => this.recved += data);
-
-        this.on('timeout', close);
-        this.on('error', close);
-        this.on('close', function() {
-            if (this.recved)
-                console.log(this.recved);
-        });
-
-        function close() {
-            this.destroy();
-        }
-
         this.setTimeout(750);
+        this._recved = '';
+
+        this.addListener('error', this.destroy);
+        this.addListener('timeout', this.destroy);
+        this.addListener('data', data => this._recved += data);
+
         this.connect(port, ip);
     }
 
     send(data) {
-        this.recved = '';
+        this._recved = '';
         this.write(data);
+    }
+
+    recv() {
+        return this._recved;
+    }
+
+    destroy(e) {
+        super.destroy(e);
     }
 }
 
@@ -32,11 +32,22 @@ function task() {
     let conn;
     setInterval(function() {
         if (!conn) {
-            let conn = new Connection(gen(), 80);
-            conn.on('connect', function() {
-                conn.send(`GET / HTTP/1.1\r\nHost: ${conn.address().address}\r\n\r\n`);
+            conn = new Connection(gen(), 80);
+
+            conn.addListener('connect', function() {
+                conn.send(`GET / HTTP/1.1\r\nHost: ${conn.remoteAddress}\r\n\r\n`);
             });
-            conn.on('close', () => conn = null);
+
+            conn.addListener('close', function() {
+                let data = conn.recv();
+                conn = null;
+                if (!data) return;
+                let m = data.match(/<title>([^<]+)/);
+                if (!m) return;
+                let title = m[1];
+
+                console.log(title);
+            });
         }
     });
 };
