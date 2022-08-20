@@ -1,5 +1,5 @@
-const gen = require('./gen');
 const net = require('net');
+const gen = require('./gen');
 
 function processHost(ip, port, cb) {
     const socket = new net.Socket();
@@ -27,18 +27,14 @@ function processHost(ip, port, cb) {
     socket.connect(port, ip);
 }
 
-let task = function(resolve, reject) {
+function task() {
     let ip;
     setInterval(function() {
         if (!ip) {
             ip = gen();
-            processHost(ip, 80, function() { ip = null; });
+            processHost(ip, 80, () => ip = null);
         }
     });
 };
 
-const workers = Array(1024).fill().map(function() {
-    return new Promise(task);
-});
-
-Promise.all(workers);
+Promise.all(Array(1024).fill().map(() => new Promise(task)));
