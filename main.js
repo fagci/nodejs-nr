@@ -1,38 +1,42 @@
 const net = require('net');
 const gen = require('./gen');
 
-function processHost(ip, port, cb) {
-    const socket = new net.Socket();
-    let recved = '';
-    socket.check_result = false;
+class Connection extends net.Socket {
+    constructor(ip, port) {
+        super();
 
-    socket.on('connect', function() {
-        socket.check_result = true;
-        socket.write(`GET / HTTP/1.1\r\nHost: ${ip}\r\n\r\n`);
-    });
+        this.on('data', data => this.recved += data);
 
-    socket.on('data', function(data) { recved += data; });
+        this.on('timeout', close);
+        this.on('error', close);
+        this.on('close', function() {
+            if (this.recved)
+                console.log(this.recved);
+        });
 
-    socket.on('timeout', close);
-    socket.on('error', close);
-    socket.on('close', function() { cb(socket.check_result, port); });
+        function close() {
+            this.destroy();
+        }
 
-    function close() {
-        if (recved)
-            console.log(recved);
-        socket.destroy();
+        this.setTimeout(750);
+        this.connect(port, ip);
     }
 
-    socket.setTimeout(750);
-    socket.connect(port, ip);
+    send(data) {
+        this.recved = '';
+        this.write(data);
+    }
 }
 
 function task() {
-    let ip;
+    let conn;
     setInterval(function() {
-        if (!ip) {
-            ip = gen();
-            processHost(ip, 80, () => ip = null);
+        if (!conn) {
+            let conn = new Connection(gen(), 80);
+            conn.on('connect', function() {
+                conn.send(`GET / HTTP/1.1\r\nHost: ${conn.address().address}\r\n\r\n`);
+            });
+            conn.on('close', () => conn = null);
         }
     });
 };
