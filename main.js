@@ -31,8 +31,9 @@ function task() {
 
         conn = new Connection(gen(), 80);
 
-        conn.addListener('connect', sendRequest);
-        conn.addListener('close', processResponse);
+        conn.addListener('ready', sendRequest);
+        conn.addListener('end', processResponse);
+
         conn.addListener('close', () => conn = null)
     });
 };
