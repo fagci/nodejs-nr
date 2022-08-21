@@ -22,7 +22,6 @@ function processResponse() {
     let title = getTitle(data);
 
     if (title) console.log(`${ip}: ${title}`);
-    this.end();
     this.destroy();
 }
 
