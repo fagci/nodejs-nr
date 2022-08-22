@@ -2,12 +2,11 @@ const gen = require('./gen');
 const Connection = require('./connection');
 
 function getTitle(html) {
-    if (!html) return;
-
-    let m = html.match(/<title>([^<]+)/);
-    if (!m) return;
-
-    return m[1].replace(/(\r|\n)/, ' ').trim();
+    return html
+        ?.match(/<title>([^<]+)/)
+        ?.at(1)
+        .replace(/(\r|\n)/, ' ')
+        .trim();
 }
 
 function sendRequest() {
@@ -16,27 +15,24 @@ function sendRequest() {
 }
 
 function processResponse() {
-    let data = this.recv();
-    let ip = this.remoteAddress;
-
-    let title = getTitle(data);
+    const data = this.recv();
+    const ip = this.remoteAddress;
+    const title = getTitle(data);
 
     if (title) console.log(`${ip}: ${title}`);
     this.destroy();
 }
 
 function task() {
-    let conn;
-    setInterval(function() {
-        if (conn) return;
+    const conn = new Connection(gen(), 80);
 
-        conn = new Connection(gen(), 80);
+    conn.addListener('ready', sendRequest);
+    conn.addListener('end', processResponse);
 
-        conn.addListener('ready', sendRequest);
-        conn.addListener('end', processResponse);
-
-        conn.addListener('close', () => conn = null)
-    });
+    conn.addListener('close', () => {
+        delete conn;
+        task();
+    })
 };
 
 Promise.all(Array(1024).fill().map(() => new Promise(task)));
