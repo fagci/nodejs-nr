@@ -8,16 +8,19 @@ class Connection extends net.Socket {
         this._recved = '';
         this._opTimeout = opTimeout;
 
-        this.addListener('error', this.destroy);
-        this.addListener('timeout', this.destroy);
-        this.addListener('close', this.clearOpTimeout);
+        this.addListener('error', () => this.destroy());
+        this.addListener('timeout', () => this.destroy());
+        this.addListener('close', () => this.clearOpTimeout());
         this.addListener('data', data => this._recved += data);
 
         this.connect(port, ip);
     }
 
     setOpTimeout() {
-        this._opTimeoutHandle = setTimeout(this.destroy, this._opTimeout);
+        this.clearOpTimeout();
+        this._opTimeoutHandle = setTimeout(() => {
+            this.destroy();
+        }, this._opTimeout);
     }
 
     clearOpTimeout() {
